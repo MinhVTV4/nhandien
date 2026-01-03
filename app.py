@@ -1,34 +1,73 @@
 import streamlit as st
-import face_recognition
 import numpy as np
-from PIL import Image, ImageDraw
-
-st.set_page_config(page_title="Nhận diện khuôn mặt", layout="centered")
-
-st.title("📷 Ứng dụng Nhận diện Khuôn mặt")
-st.write("Chụp ảnh bằng camera để phát hiện khuôn mặt")
+from PIL import Image
+import cv2
 
 # ==============================
-# CAMERA INPUT
+# CONFIG
 # ==============================
-img_file = st.camera_input("Chụp ảnh")
+st.set_page_config(
+    page_title="AI Image Demo",
+    layout="centered"
+)
 
-if img_file is not None:
-    # Load ảnh
-    image = Image.open(img_file).convert("RGB")
-    image_np = np.array(image)
+st.title("🤖 AI Demo – Phân tích ảnh")
+st.write("Upload ảnh → AI xử lý → Hiển thị kết quả")
 
-    with st.spinner("🔍 Đang nhận diện khuôn mặt..."):
-        face_locations = face_recognition.face_locations(image_np)
+# ==============================
+# CACHE MODEL (GIẢ LẬP)
+# ==============================
+@st.cache_resource
+def load_ai_model():
+    # Giả lập model nặng
+    return "dummy_model"
 
-    # Vẽ khung khuôn mặt
-    draw = ImageDraw.Draw(image)
-    for top, right, bottom, left in face_locations:
-        draw.rectangle(((left, top), (right, bottom)), outline="red", width=3)
+model = load_ai_model()
 
-    # Hiển thị kết quả
-    st.success(f"✅ Phát hiện {len(face_locations)} khuôn mặt")
-    st.image(image, caption="Kết quả nhận diện", use_container_width=True)
+# ==============================
+# UPLOAD IMAGE
+# ==============================
+uploaded_file = st.file_uploader(
+    "📤 Upload ảnh",
+    type=["jpg", "png", "jpeg"]
+)
 
-else:
-    st.info("👆 Hãy bấm nút chụp ảnh để bắt đầu")
+if uploaded_file is None:
+    st.info("👆 Vui lòng upload ảnh để bắt đầu")
+    st.stop()
+
+# ==============================
+# LOAD & PREPROCESS
+# ==============================
+image = Image.open(uploaded_file).convert("RGB")
+image_np = np.array(image)
+
+st.image(image, caption="Ảnh gốc", use_container_width=True)
+
+# ==============================
+# AI PROCESSING
+# ==============================
+with st.spinner("🧠 AI đang phân tích..."):
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray, 100, 200)
+
+# ==============================
+# OUTPUT
+# ==============================
+st.success("✅ Phân tích xong")
+
+st.subheader("🔍 Kết quả AI (Edge Detection)")
+st.image(edges, use_container_width=True)
+
+# ==============================
+# EXPLAIN
+# ==============================
+st.markdown("""
+### 📌 Giải thích
+- Ảnh được chuyển sang **grayscale**
+- AI phát hiện **đường biên (edges)**
+- Đây là bước nền cho:
+  - Nhận diện khuôn mặt
+  - Phát hiện vật thể
+  - OCR
+""")
